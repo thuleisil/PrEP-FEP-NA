@@ -1,47 +1,42 @@
 source("script/pre-processing_ALL_COVARIATES.R")
 
-
 # Load the dataset
 data <- read_csv("data/residuals.csv")
-
-
 
 ##############################################
 # 1. Data preparation
 ##############################################
 
-# prendo solo gli item PANSS - ricorda che il dataset qui è di 302 elementi
+# Select only PANSS items – note: this dataset has 302 participants
 data <- data %>% 
   dplyr::select(contains("PANSS")) %>% 
   as_tibble()
 
-
-# nomi di tutte le colonne
+# Get all column names
 all_names <- colnames(data)
 
-# sintomi al baseline: quelli che NON iniziano con "T1" o "T2"
+# Baseline symptoms: those that do NOT start with "T1" or "T2"
 symptoms <- all_names[!grepl("^T[0-9]", all_names)]
-length(symptoms)          # dovrebbe essere 30
-symptoms                  # tipo "PANSSP1", "PANSSP2", ...
+length(symptoms)          # should be 30
+symptoms                  # e.g., "PANSSP1", "PANSSP2", ...
 
-# time–points (prefissi)
-waves <- c("", "T1", "T2")   # "" = baseline, poi T1, T2
+# Timepoints (prefixes)
+waves <- c("", "T1", "T2")   # "" = baseline, then T1, T2
 
-# costruisco la design matrix: righe = sintomi, colonne = time–points
+# Build design matrix: rows = symptoms, columns = timepoints
 design_mat <- sapply(
   waves,
   function(w) if (w == "") symptoms else paste0(w, symptoms)
 )
 
-# ora: nrow = 30 variabili, ncol = 3 time–points
+# Now: nrow = 30 variables, ncol = 3 timepoints
 dim(design_mat)
-# [1] 30  3
 
-# assegno alle righe il nome del sintomo (senza prefisso di tempo)
+# Assign row names to the matrix (symptom name without time prefix)
 rownames(design_mat) <- symptoms
 
 ##############################################
-# 2. STIMO IL MODELLO PANELGVAR
+# 2. Estimate the PANEL GVAR model
 ##############################################
 
 model <- panelgvar(
@@ -56,56 +51,50 @@ set.seed(1234)
 model_sat <- model %>%
   runmodel() # saturated model
 
-
 model_pruned <- model_sat %>%
   prune(alpha = 0.1, adjust = "none") # pruned model
 
-## fit indices
-
+## Fit indices
 fit_sat <- model_sat %>% fit()
-
 fit_pruned <- model_pruned %>% fit()
 
-
-
-# Compare if saturated or pruned model performs better
+# Compare saturated vs pruned model
 psychonetrics::compare(
   saturate = model_sat,
   sparse   = model_pruned
 )
 
-# estraggo le tre matrici di interesse - saturated
+# Extract the three networks - saturated
 features_temporal        <- getmatrix(model_sat, "beta")
 features_contemporaneous <- getmatrix(model_sat, "omega_zeta_within")
 features_between         <- getmatrix(model_sat, "omega_zeta_between")
 
-
-# estraggo le tre matrici di interesse - pruned
+# Extract the three networks - pruned
 features_temporal        <- getmatrix(model_pruned, "beta")
 features_contemporaneous <- getmatrix(model_pruned, "omega_zeta_within")
 features_between         <- getmatrix(model_pruned, "omega_zeta_between")
 
-# tutte e tre dovrebbero essere 30 x 30
+# All matrices should be 30 x 30
 dim(features_temporal)
 dim(features_contemporaneous)
 dim(features_between)
 
 ##############################################
-# 3. LABELS PER I NODI
+# 3. Node labels
 ##############################################
 
-# uso direttamente i nomi dei sintomi (senza T1/T2)
-labels_clean <- rownames(design_mat)    # "PANSSP1", "PANSSP2", ...
+# Use symptom names directly (without T1/T2 prefix)
+labels_clean <- rownames(design_mat)    # e.g., "PANSSP1", ...
 
 ##############################################
-# 4. PLOT DELLE TRE RETI
+# 4. Plot the three networks
 ##############################################
 
 g_temp <- qgraph(
   features_temporal,
   layout  = "spring",
-  directed = TRUE,     # forza il trattamento come rete direzionale
-  diag    = TRUE,      # mostra le autoregressioni
+  directed = TRUE,     # force directed network
+  diag    = TRUE,      # show autoregressions
   labels  = labels_clean,
   curveAll = T,
   curve = 0, 
@@ -147,73 +136,61 @@ g_between <- qgraph(
   title  = "Between-subjects network"
 )
 
-
-
-
-
-
-
-
 #########################################################################################
 #                              CENTRALITY - RADARPLOTS                                  #
 #########################################################################################
 
-
-
 # --------------------------------------
-# RADAR CHART della rete temporale
+# RADAR CHART for the temporal network
 # --------------------------------------
 
-# 1. Calcolo InStrength e OutStrength dalla matrice beta (rete temporale)
-in_strength  <- colSums(abs(features_temporal))   # quanto ogni sintomo riceve
-out_strength <- rowSums(abs(features_temporal))   # quanto ogni sintomo invia
+# 1. Compute InStrength and OutStrength from beta matrix (temporal network)
+in_strength  <- colSums(abs(features_temporal))   # how much each symptom receives
+out_strength <- rowSums(abs(features_temporal))   # how much each symptom sends
 
-# 2. Raggruppo per il radar chart (formato richiesto da fmsb)
+# 2. Prepare radar chart data (format required by fmsb)
 library(fmsb)
 
-# Creo data.frame per radar (max, min, valori)
 global_strength <- c(in_strength, out_strength)
 max_min_data <- matrix(NA, ncol = length(in_strength), nrow = 4)
-max_min_data[1,] <- max(global_strength)                   # max
-max_min_data[2,] <- rep(0, length(in_strength))            # min
-max_min_data[3,] <- in_strength                            # InStrength
-max_min_data[4,] <- out_strength                           # OutStrength
+max_min_data[1,] <- max(global_strength)                   # max value
+max_min_data[2,] <- rep(0, length(in_strength))            # min value
+max_min_data[3,] <- in_strength                            # InStrength values
+max_min_data[4,] <- out_strength                           # OutStrength values
 
 rownames(max_min_data) <- c("max", "min", "InStrength", "OutStrength")
-colnames(max_min_data) <- labels_clean  # le etichette dei nodi già definite prima
+colnames(max_min_data) <- labels_clean  # node labels
 max_min_data <- as.data.frame(max_min_data)
 
-# 3. Colori
+# 3. Colors
 library(scales)
 colors_in <- c(rgb(0.2, 0.5, 0.5, 0.4), rgb(0.8, 0.2, 0.5, 0.4))
 
-# 4. Funzione di plotting (estetica)
+# 4. Radar chart plotting function (aesthetic version)
 create_beautiful_radarchart <- function(data, 
                                         color = "#00AFBB", 
                                         vlabels = colnames(data), 
                                         vlcex = 0.7,
                                         caxislabels = NULL, 
-                                        title = NULL, ...) { radarchart(
-                                          data, axistype = 1,
-                                          pcol = color, 
-                                          pfcol = scales::alpha(color, 0.5), 
-                                          plwd = 2, plty = 1,
-                                          cglcol = "black", cglty = 1, cglwd = 0.5,
-                                          seg = 4,
-                                          axislabcol = "black",
-                                          vlcex = vlcex, vlabels = vlabels,
-                                          caxislabels = caxislabels, title = title, ...
-                                        )
+                                        title = NULL, ...) { 
+  radarchart(
+    data, axistype = 1,
+    pcol = color, 
+    pfcol = scales::alpha(color, 0.5), 
+    plwd = 2, plty = 1,
+    cglcol = "black", cglty = 1, cglwd = 0.5,
+    seg = 4,
+    axislabcol = "black",
+    vlcex = vlcex, vlabels = vlabels,
+    caxislabels = caxislabels, title = title, ...
+  )
 }
 
-
-
-
-# 5. Etichette degli assi
+# 5. Axis labels
 caxislabels = seq(0, round(max(global_strength), 2), length.out = 5)
 caxislabels_rounded <- round(caxislabels, 2)
 
-
+# 6. Create radar chart
 create_beautiful_radarchart(
   max_min_data,
   color = colors_in,
@@ -227,12 +204,7 @@ legend(x = 1, y = 1.2,
        col = colors_in, text.col = "black",
        cex = 1.2, pt.cex = 3)
 
-
-# 6. Plot finale
+# 7. Save radar plot
 tiff(filename = "results/radar_temporal_strength_adjusted.tiff", width = 3000, height = 2000, res = 300)
 
-
 dev.off()
-
-
-
