@@ -1,40 +1,38 @@
-
 source("script/setup.R")
 
-# Prendo il dataset droppato - con 368 elementi - cioè tutte le persone che hanno dati completi - possibile aumentare a 368????
+# === STEP 0 - Prepare data ===
+# Let's use the dropped dataset - with 368 complete cases
+# Is it possible to increase to 368???
 
 net_impute_vars <- prep_df_drop %>% 
   dplyr::select(contains("PANSS"))
 
-
-# nomi di tutte le colonne
+# Get all column names
 all_names <- colnames(net_impute_vars)
 
-# sintomi al baseline: quelli che NON iniziano con "T1" o "T2"
+# Baseline symptoms: those NOT starting with "T1" or "T2"
 symptoms <- all_names[!grepl("^T[0-9]", all_names)]
-length(symptoms)          # dovrebbe essere 30
-symptoms                  # tipo "PANSSP1", "PANSSP2", ...
+length(symptoms)          # should be 30
+symptoms                  # e.g. "PANSSP1", "PANSSP2", ...
 
-# time–points (prefissi)
-waves <- c("", "T1", "T2")   # "" = baseline, poi T1, T2
+# Time points (prefixes)
+waves <- c("", "T1", "T2")   # "" = baseline, then T1, T2
 
-# costruisco la design matrix: righe = sintomi, colonne = time–points
+# Build a design matrix: rows = symptoms, columns = time points
 design_mat <- sapply(
   waves,
   function(w) if (w == "") symptoms else paste0(w, symptoms)
 )
 
-
-# assegno alle righe il nome del sintomo (senza prefisso di tempo)
+# Assign row names based on the symptom (without time prefix)
 rownames(design_mat) <- symptoms
 
+# === STEP 1 - Residualisation: regress out covariates ===
+# Covariates: age, gender, medication, total words, etc.
 
-# Regress out age, gender, medication vars, total words and score (number of EHR entries in FUP) 
-
-## 1. Dataset di lavoro: covariate + tutte le PANSS (90 variabili)
-
-panss_vars <- as.vector(design_mat)      # tutte le PANSS: baseline, T1, T2
-panss_vars <- unique(panss_vars)        # per sicurezza, rimuovo duplicati
+## 1. Working dataset: covariates + all PANSS (90 variables)
+panss_vars <- as.vector(design_mat)      # All PANSS variables across 3 timepoints
+panss_vars <- unique(panss_vars)        # Just in case, remove duplicates
 
 covars <- c(
   "GENDER", "ETA", "ETNIA", "ANTIPSIC1", "ANTIDEP1", "STABILIZ1", "BENZO" 
@@ -44,9 +42,9 @@ net_impute <- prep_df_drop %>%
   dplyr::select(all_of(c(covars, panss_vars))) %>%
   as.data.frame()
 
-## 2. Loop: per ogni sintomo × time point regredisco sui covariati e sostituisco con i residui
+## 2. Loop through each symptom × time point: regress on covariates and replace with residuals
 
-n_v <- nrow(design_mat)   # 30 sintomi
+n_v <- nrow(design_mat)   # 30 symptoms
 n_t <- ncol(design_mat)   # 3 time points
 
 set.seed(1234)
@@ -54,21 +52,21 @@ set.seed(1234)
 for (k in 1:n_v) {
   for (i in 1:n_t) {
     
-    x_var <- design_mat[k, i]   # es. "PANSSP1", "T1PANSSP1", "T2PANSSP1"
+    x_var <- design_mat[k, i]   # e.g. "PANSSP1", "T1PANSSP1", "T2PANSSP1"
     
-    # costruiamo la formula: es. "PANSSP1 ~ GENDER + ETA + ... + ANTIDEP1"
+    # Build formula: e.g. "PANSSP1 ~ GENDER + AGE + ..."
     f <- as.formula(
       paste(x_var, "~", paste(covars, collapse = " + "))
     )
     
     fit <- lm(f, data = net_impute)
     
-    # sostituisco i valori originali con i residui
+    # Replace original values with residuals
     net_impute[[x_var]] <- residuals(fit)
   }
 }
 
-## 3. Center, scale & detrend delle sole variabili PANSS
+## 3. Center, scale & detrend PANSS variables only
 
 net_impute <- net_impute %>%
   mutate(across(all_of(panss_vars),
@@ -76,31 +74,30 @@ net_impute <- net_impute %>%
 
 dim(net_impute)
 
-
+# Save final cleaned dataset
 write.csv(net_impute, "data/residuals.csv")
-
 
 
 
 #### PLOTS ######
 
+# Plot detrended residuals (aggregated, not individual)
 
-#  plotting detrended residuals (as aggregate rather than individual data)
+# Choose one PANSS item to check
+item <- "PANSSP2"   # e.g. "PANSSN5", "PANSSG8", etc.
 
-# scegli l’item PANSS da controllare
-item <- "PANSSP2"   # cambia in "PANSSN5", "PANSSG8", ecc.
-
-# costruisco i nomi delle colonne per i 3 timepoint
+# Build column names for 3 timepoints
 item_cols <- c(
   item,
   paste0("T1", item),
   paste0("T2", item)
 )
 
-# controllo che le colonne esistano davvero
+# Check that these columns exist
 item_cols
 colnames(net_impute)[colnames(net_impute) %in% item_cols]
 
+# Plot violin plot for selected item
 ggplot(
   net_impute %>%
     select(all_of(item_cols)) %>%
@@ -113,7 +110,7 @@ ggplot(
       Time = factor(
         Time,
         levels = item_cols,
-        labels = c("T0", "T1", "T2")   # etichette più leggibili
+        labels = c("T0", "T1", "T2")   # cleaner labels
       )
     ),
   aes(x = Time, y = Value)
@@ -127,7 +124,7 @@ ggplot(
   labs(
     title = item,
     x     = "Time point",
-    y     = "Residuali standardizzati"
+    y     = "Standardised residuals"
   ) +
   theme_bw() +
   theme(
@@ -137,20 +134,18 @@ ggplot(
 
 
 
-## loop
+## Loop over all items – full violin plot grid
 
-## 1. elenco dei 30 item PANSS al baseline
-## (se li hai già in `symptoms` puoi saltare questo pezzo)
+## 1. List of the 30 PANSS items at baseline
 net_impute_vars <- net_impute %>% 
   dplyr::select(contains("PANSS"))
 
 all_names <- colnames(net_impute_vars)
-symptoms  <- all_names[!grepl("^T[0-9]", all_names)]   # es. "PANSSP1", ..., "PANSSG16"
+symptoms  <- all_names[!grepl("^T[0-9]", all_names)]   # e.g. "PANSSP1", ..., "PANSSG16"
 
-## 2. porto in formato long TUTTI gli item × timepoint
+## 2. Convert to long format for all items × timepoints
 
 panss_long <- net_impute %>%
-  # prendo tutte le colonne PANSS: baseline, T1, T2
   dplyr::select(
     dplyr::all_of(c(
       symptoms,
@@ -164,18 +159,18 @@ panss_long <- net_impute %>%
     values_to = "Value"
   ) %>%
   mutate(
-    # ricavo il timepoint dalla stringa della colonna
+    # Extract timepoint from variable name
     Time = dplyr::case_when(
       grepl("^T1", Var) ~ "T1",
       grepl("^T2", Var) ~ "T2",
       TRUE              ~ "T0"
     ),
-    # ricavo il nome dell’item togliendo l’eventuale prefisso T1/T2
+    # Extract item name by removing T1/T2 prefix
     Item = gsub("^T[0-9]", "", Var),
     Time = factor(Time, levels = c("T0", "T1", "T2"))
   )
 
-## 3. faccio il plot 10 × 3 con facet_wrap
+## 3. Plot grid 10 × 3 using facet_wrap
 
 ggplot(
   panss_long,
@@ -189,7 +184,7 @@ ggplot(
   ) +
   facet_wrap(
     ~ Item,
-    ncol = 3   # 3 colonne → 10 righe per 30 item
+    ncol = 3   # 3 columns → 10 rows for 30 items
   ) +
   labs(
     title = "PANSS – standardised residuals by items and timepoints",
@@ -207,4 +202,3 @@ ggplot(
     panel.spacing.x  = unit(0.15, "lines"),
     panel.spacing.y  = unit(0.15, "lines")
   )
-
