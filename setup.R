@@ -1,3 +1,5 @@
+setwd(dir = "/Users/tbjannini/Library/CloudStorage/OneDrive-Universita'degliStudidiRomaTorVergata/Prof Di Lorenzo/MNESYS/PrEP - Parma Early Psychosis Programme")
+
 library(haven)
 library(tidyverse)
 library(summarytools)
@@ -33,9 +35,10 @@ prep_df_mod <- prep_df %>%
 
 
 prep_df_drop <- prep_df %>% 
-  select(contains("PANSS"), ETA, GENDER, ETNIA, ANTIPSIC1, ANTIDEP1, STABILIZ1, BENZO) %>% 
+  select(contains("PANSS"), ETA, GENDER, ETNIA, ANTIPSIC1, ANTIDEP1, STABILIZ1, BENZO, T0_DIAGNOSI, T1_CBT, T1_PSICED, T1_CMREC) %>% 
   drop_na()
 
 
-
-
+prep_df_drop <- prep_df_drop %>% 
+  mutate(ID = 1:nrow(prep_df_drop)) %>% 
+  select(ID, everything())
