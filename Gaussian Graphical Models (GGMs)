@@ -1,0 +1,1335 @@
+source("script/setup.R")
+source("script/pre-processing_ALL_COVARIATES.R")
+
+
+######### PANSS GAUSSIAN T0 #############
+
+
+## datasets ##
+
+
+
+df_T0 <-  net_impute %>% 
+  select(starts_with("PANSS")) 
+
+
+
+
+
+## building the network
+
+nwk_panss_T0 <- estimateNetwork(df_T0, default = "EBICglasso")
+
+colors <- c(
+  # PANSS POSITIVE (P) – magenta caldo (molto visibile)
+  PANSSP1 = "#C51B7D",  # delusions
+  PANSSP2 = "#C51B7D",  # conceptual disorganization
+  PANSSP3 = "#C51B7D",  # hallucinatory behavior
+  PANSSP4 = "#C51B7D",  # excitement
+  PANSSP5 = "#C51B7D",  # grandiosity
+  PANSSP6 = "#C51B7D",  # suspiciousness
+  PANSSP7 = "#C51B7D",  # hostility
+  
+  # PANSS NEGATIVE (N) – blu chiaro ad alto contrasto
+  PANSSN1 = "#4C72B0",  # blunted affect
+  PANSSN2 = "#4C72B0",  # emotional withdrawal
+  PANSSN3 = "#4C72B0",  # poor rapport
+  PANSSN4 = "#4C72B0",  # passive social withdrawal
+  PANSSN5 = "#4C72B0",  # difficulty in abstract thinking
+  PANSSN6 = "#4C72B0",  # lack of spontaneity
+  PANSSN7 = "#4C72B0",  # stereotyped thinking
+  
+  # PANSS GENERAL (G) – verde petrolio scuro (non confonde col blu)
+  PANSSG1  = "#1B9E77", # somatic concern
+  PANSSG2  = "#1B9E77", # anxiety
+  PANSSG3  = "#1B9E77", # guilt feelings
+  PANSSG4  = "#1B9E77", # tension
+  PANSSG5  = "#1B9E77", # mannerisms
+  PANSSG6  = "#1B9E77", # depression
+  PANSSG7  = "#1B9E77", # motor retardation
+  PANSSG8  = "#1B9E77", # uncooperativeness
+  PANSSG9  = "#1B9E77", # unusual thought content
+  PANSSG10 = "#1B9E77", # disorientation
+  PANSSG11 = "#1B9E77", # poor attention
+  PANSSG12 = "#1B9E77", # lack of judgment
+  PANSSG13 = "#1B9E77", # disturbance of volition
+  PANSSG14 = "#1B9E77", # poor impulse control
+  PANSSG15 = "#1B9E77", # preoccupation
+  PANSSG16 = "#1B9E77"  # active social avoidance
+)
+
+
+
+node_labels <- c(
+  PANSSP1 = "P1", PANSSP2 = "P2", PANSSP3 = "P3",
+  PANSSP4 = "P4", PANSSP5 = "P5", PANSSP6 = "P6", PANSSP7 = "P7",
+  
+  PANSSN1 = "N1", PANSSN2 = "N2", PANSSN3 = "N3",
+  PANSSN4 = "N4", PANSSN5 = "N5", PANSSN6 = "N6", PANSSN7 = "N7",
+  
+  PANSSG1  = "G1",  PANSSG2  = "G2",  PANSSG3  = "G3",  PANSSG4  = "G4",
+  PANSSG5  = "G5",  PANSSG6  = "G6",  PANSSG7  = "G7",  PANSSG8  = "G8",
+  PANSSG9  = "G9",  PANSSG10 = "G10", PANSSG11 = "G11", PANSSG12 = "G12",
+  PANSSG13 = "G13", PANSSG14 = "G14", PANSSG15 = "G15", PANSSG16 = "G16"
+)
+
+
+nodeNames_panss <- c(
+  PANSSP1 = "Delusions",
+  PANSSP2 = "Conceptual disorganization",
+  PANSSP3 = "Hallucinatory behavior",
+  PANSSP4 = "Excitement",
+  PANSSP5 = "Grandiosity",
+  PANSSP6 = "Suspiciousness",
+  PANSSP7 = "Hostility",
+  
+  PANSSN1 = "Blunted affect",
+  PANSSN2 = "Emotional withdrawal",
+  PANSSN3 = "Poor rapport",
+  PANSSN4 = "Passive social withdrawal",
+  PANSSN5 = "Difficulty in abstract thinking",
+  PANSSN6 = "Lack of spontaneity",
+  PANSSN7 = "Stereotyped thinking",
+  
+  PANSSG1  = "Somatic concern",
+  PANSSG2  = "Anxiety",
+  PANSSG3  = "Guilt feelings",
+  PANSSG4  = "Tension",
+  PANSSG5  = "Mannerisms",
+  PANSSG6  = "Depression",
+  PANSSG7  = "Motor retardation",
+  PANSSG8  = "Uncooperativeness",
+  PANSSG9  = "Unusual thought content",
+  PANSSG10 = "Disorientation",
+  PANSSG11 = "Poor attention",
+  PANSSG12 = "Lack of judgment and insight",
+  PANSSG13 = "Disturbance of volition",
+  PANSSG14 = "Poor impulse control",
+  PANSSG15 = "Preoccupation",
+  PANSSG16 = "Active social avoidance"
+)
+
+
+groups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
+
+
+
+plot_panss_T0 <- qgraph(
+  nwk_panss_T0$graph,
+  layout = "spring",
+  
+  labels    = node_labels,
+  nodeNames = nodeNames_panss,
+  color     = colors,
+  groups    = groups,
+  
+  legend = TRUE,
+  legend.mode = "names",
+  legend.cex  = 0.6,     # legenda più piccola
+  
+  GLratio = 3.2,         # più spazio al grafo
+  
+  label.cex   = 0.9,
+  label.color = "black",
+  label.prop  = 1,
+  
+  border.width = 1,
+  negDashed   = F,
+  curveAll    = TRUE,
+  curveDefault = 0.35,
+  
+  # <<< QUI CAMBI I COLORI DEGLI EDGES >>>
+  posCol = "blue",   # edge positivi in blu
+  negCol = "red",    # edge negativi in rosso
+  
+  font = 2
+)
+
+
+
+
+
+# Salvare il grafo del Network
+qgraph(plot_panss_T0, filetype='jpeg', dpi = 300)
+
+
+
+
+# test per vedere se gli edges sono significativi
+btnt_np <- bootnet(nwk_panss_T0,
+                   type = "nonparametric",
+                   statistics = "edge",
+                   nBoots = 100,
+                   verbose = FALSE,
+                   nCores = 1)
+plot(btnt_np,
+     order = "sample")
+
+plot(btnt_np, 
+     plot = "difference",
+     order = "sample")
+
+## estimating network  the stability
+
+
+b1 <- bootnet(nwk_panss_T0, boots = 1000, nCores = 4, statistics = "all", nBoots = 100, type = "case")
+
+
+## getting centrality coefficients
+
+corStability(b1)
+
+plot(b1, statistics = c("strength", "betweenness", "closeness", "expectedInfluence"))
+
+ggsave(filename = "stability_plot_1.jpeg", dpi = 300)
+
+
+#creating centrality plots
+
+c1 <- centralityPlot(plot_panss_T0, orderBy = "Strength")
+
+
+Sim1 <- netSimulator(
+  input = nwk_panss_T0, 
+  default = "EBICglasso",
+  nCases = seq(200, 1000, 200),
+  nReps = 100)
+
+
+plot(Sim1)
+
+## bridge symptoms
+
+
+mygroups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
+
+
+
+#costructing partial correlation matrix
+
+myedges <- getWmat(nwk_panss_T0)
+write.csv(myedges, "results/mynetworkedges.csv")
+
+#conta tutti gli edges
+sum(myedges != 0)
+
+
+
+#estimate bridge values for each node
+
+mybridge_T0 <- 
+  bridge(plot_panss_T0, communities = c('1', '1','1','1', '1','1', '1',
+                                          '2', '2', '2', '2', '2', '2', '2', 
+                                          '3', '3','3','3','3','3','3','3','3','3','3','3','3','3','3','3'
+  ), 
+  useCommunities = "all", directed = NULL, nodes = NULL)
+
+#get the values of bridge centrality indices
+summary(mybridge_T0)
+
+
+p <- plot(mybridge_T0)
+
+
+b2 <- bootnet(nwk_panss_T0,
+              type = "case",
+              nBoots  = 100,
+              statistics = c("edge", "strength", "betweenness", "bridgeStrength", "bridgeExpectedInfluence"),
+              communities = mygroups, #qui ho aggiunto anche gli indici di centralità bridge, quindi ho dovuto specificare chi sono i gruppi
+              verbose = FALSE)
+
+corStability(b2)
+
+
+plot(b2, statistics = c("bridgeStrength"))
+
+
+#create the bridge plot
+
+library(gridExtra)
+
+
+
+
+nodeNames_panss <- c(
+  # POSITIVE
+  PANSSP1 = "P1 – Delusions",
+  PANSSP2 = "P2 – Conceptual disorganization",
+  PANSSP3 = "P3 – Hallucinatory behavior",
+  PANSSP4 = "P4 – Excitement",
+  PANSSP5 = "P5 – Grandiosity",
+  PANSSP6 = "P6 – Suspiciousness",
+  PANSSP7 = "P7 – Hostility",
+  
+  # NEGATIVE
+  PANSSN1 = "N1 – Blunted affect",
+  PANSSN2 = "N2 – Emotional withdrawal",
+  PANSSN3 = "N3 – Poor rapport",
+  PANSSN4 = "N4 – Passive social withdrawal",
+  PANSSN5 = "N5 – Difficulty in abstract thinking",
+  PANSSN6 = "N6 – Lack of spontaneity",
+  PANSSN7 = "N7 – Stereotyped thinking",
+  
+  # GENERAL PSYCHOPATHOLOGY
+  PANSSG1  = "G1 – Somatic concern",
+  PANSSG2  = "G2 – Anxiety",
+  PANSSG3  = "G3 – Guilt feelings",
+  PANSSG4  = "G4 – Tension",
+  PANSSG5  = "G5 – Mannerisms and posturing",
+  PANSSG6  = "G6 – Depression",
+  PANSSG7  = "G7 – Motor retardation",
+  PANSSG8  = "G8 – Uncooperativeness",
+  PANSSG9  = "G9 – Unusual thought content",
+  PANSSG10 = "G10 – Disorientation",
+  PANSSG11 = "G11 – Poor attention",
+  PANSSG12 = "G12 – Lack of judgment and insight",
+  PANSSG13 = "G13 – Disturbance of volition",
+  PANSSG14 = "G14 – Poor impulse control",
+  PANSSG15 = "G15 – Preoccupation",
+  PANSSG16 = "G16 – Active social avoidance"
+)
+
+
+
+
+
+
+
+plot_panss_T0.2 <- qgraph(
+  nwk_panss_T0$graph,
+  layout = "spring",
+  
+  labels    = node_labels,
+  nodeNames = nodeNames_panss,
+  color     = colors,
+  groups = groups,
+  
+  legend = TRUE,
+  legend.mode = "names",
+  legend.cex  = 0.6,     # << legenda più piccola
+  
+  GLratio = 3.2,         # << più spazio al grafo
+  
+  label.cex   = 0.9,
+  label.color = "black",
+  label.prop  = 1,
+  
+  border.width = 1,
+  negDashed   = TRUE,
+  curveAll    = TRUE,
+  curveDefault = 0.35,
+  
+  font = 2
+)
+
+mybridge_T0 <- 
+  bridge(plot_panss_T0.2, communities = c('1', '1','1','1', '1','1', '1',
+                                        '2', '2', '2', '2', '2', '2', '2', 
+                                        '3', '3','3','3','3','3','3','3','3','3','3','3','3','3','3','3'
+  ), 
+  useCommunities = "all", directed = NULL, nodes = NULL)
+
+
+plot(mybridge_T0, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value", )
+
+
+dev.off()
+plot(mybridge_T0, order = "value")
+
+
+# Save the plot
+ggsave("mybridge_T0_plot.png", plot = last_plot(), width = 8, height = 6, dpi = 300)
+
+jpeg("mybridge_T0_plot.jpeg", width = 800, height = 600)
+
+#create bridge expected influence plot
+
+plot(mybridge_T0, include = "Bridge Expected Influence (1-step)", width = 4)
+dev.off()
+
+#estimate stability of bridge symptoms
+
+caseDrippingBoot <- bootnet(nwk_panss_T0, boots = 1000, type = "case", statistics = "all",
+                            communities = mygroups)
+
+
+corStability(caseDrippingBoot)
+
+plot(caseDrippingBoot, statistics = "bridgeStrength")
+
+plot(caseDrippingBoot, statistics = "bridgeExpectedInfluence")
+
+
+
+
+
+######### PANSS GAUSSIAN T1 #############
+
+
+## datasets ##
+
+
+df_T1 <- net_impute %>% 
+  select(starts_with("T1PANSS")) %>% 
+  rename_with(~ sub("^T1", "", .x))
+
+
+
+
+
+
+## building the network
+
+nwk_panss_T1 <- estimateNetwork(df_T1, default = "EBICglasso")
+
+colors <- c(
+  # PANSS POSITIVE (P) – magenta caldo (molto visibile)
+  PANSSP1 = "#C51B7D",  # delusions
+  PANSSP2 = "#C51B7D",  # conceptual disorganization
+  PANSSP3 = "#C51B7D",  # hallucinatory behavior
+  PANSSP4 = "#C51B7D",  # excitement
+  PANSSP5 = "#C51B7D",  # grandiosity
+  PANSSP6 = "#C51B7D",  # suspiciousness
+  PANSSP7 = "#C51B7D",  # hostility
+  
+  # PANSS NEGATIVE (N) – blu chiaro ad alto contrasto
+  PANSSN1 = "#4C72B0",  # blunted affect
+  PANSSN2 = "#4C72B0",  # emotional withdrawal
+  PANSSN3 = "#4C72B0",  # poor rapport
+  PANSSN4 = "#4C72B0",  # passive social withdrawal
+  PANSSN5 = "#4C72B0",  # difficulty in abstract thinking
+  PANSSN6 = "#4C72B0",  # lack of spontaneity
+  PANSSN7 = "#4C72B0",  # stereotyped thinking
+  
+  # PANSS GENERAL (G) – verde petrolio scuro (non confonde col blu)
+  PANSSG1  = "#1B9E77", # somatic concern
+  PANSSG2  = "#1B9E77", # anxiety
+  PANSSG3  = "#1B9E77", # guilt feelings
+  PANSSG4  = "#1B9E77", # tension
+  PANSSG5  = "#1B9E77", # mannerisms
+  PANSSG6  = "#1B9E77", # depression
+  PANSSG7  = "#1B9E77", # motor retardation
+  PANSSG8  = "#1B9E77", # uncooperativeness
+  PANSSG9  = "#1B9E77", # unusual thought content
+  PANSSG10 = "#1B9E77", # disorientation
+  PANSSG11 = "#1B9E77", # poor attention
+  PANSSG12 = "#1B9E77", # lack of judgment
+  PANSSG13 = "#1B9E77", # disturbance of volition
+  PANSSG14 = "#1B9E77", # poor impulse control
+  PANSSG15 = "#1B9E77", # preoccupation
+  PANSSG16 = "#1B9E77"  # active social avoidance
+)
+
+
+
+node_labels <- c(
+  PANSSP1 = "P1", PANSSP2 = "P2", PANSSP3 = "P3",
+  PANSSP4 = "P4", PANSSP5 = "P5", PANSSP6 = "P6", PANSSP7 = "P7",
+  
+  PANSSN1 = "N1", PANSSN2 = "N2", PANSSN3 = "N3",
+  PANSSN4 = "N4", PANSSN5 = "N5", PANSSN6 = "N6", PANSSN7 = "N7",
+  
+  PANSSG1  = "G1",  PANSSG2  = "G2",  PANSSG3  = "G3",  PANSSG4  = "G4",
+  PANSSG5  = "G5",  PANSSG6  = "G6",  PANSSG7  = "G7",  PANSSG8  = "G8",
+  PANSSG9  = "G9",  PANSSG10 = "G10", PANSSG11 = "G11", PANSSG12 = "G12",
+  PANSSG13 = "G13", PANSSG14 = "G14", PANSSG15 = "G15", PANSSG16 = "G16"
+)
+
+nodeNames_panss <- c(
+  PANSSP1 = "Delusions",
+  PANSSP2 = "Conceptual disorganization",
+  PANSSP3 = "Hallucinatory behavior",
+  PANSSP4 = "Excitement",
+  PANSSP5 = "Grandiosity",
+  PANSSP6 = "Suspiciousness",
+  PANSSP7 = "Hostility",
+  
+  PANSSN1 = "Blunted affect",
+  PANSSN2 = "Emotional withdrawal",
+  PANSSN3 = "Poor rapport",
+  PANSSN4 = "Passive social withdrawal",
+  PANSSN5 = "Difficulty in abstract thinking",
+  PANSSN6 = "Lack of spontaneity",
+  PANSSN7 = "Stereotyped thinking",
+  
+  PANSSG1  = "Somatic concern",
+  PANSSG2  = "Anxiety",
+  PANSSG3  = "Guilt feelings",
+  PANSSG4  = "Tension",
+  PANSSG5  = "Mannerisms",
+  PANSSG6  = "Depression",
+  PANSSG7  = "Motor retardation",
+  PANSSG8  = "Uncooperativeness",
+  PANSSG9  = "Unusual thought content",
+  PANSSG10 = "Disorientation",
+  PANSSG11 = "Poor attention",
+  PANSSG12 = "Lack of judgment and insight",
+  PANSSG13 = "Disturbance of volition",
+  PANSSG14 = "Poor impulse control",
+  PANSSG15 = "Preoccupation",
+  PANSSG16 = "Active social avoidance"
+)
+
+
+groups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
+
+
+
+
+plot_panss_T1 <- qgraph(
+  nwk_panss_T1$graph,
+  layout = "spring",
+  
+  labels    = node_labels,
+  nodeNames = nodeNames_panss,
+  color     = colors,
+  groups = groups,
+  
+  legend = TRUE,
+  legend.mode = "names",
+  legend.cex  = 0.6,     # << legenda più piccola
+  
+  GLratio = 3.2,         # << più spazio al grafo
+  
+  label.cex   = 0.9,
+  label.color = "black",
+  label.prop  = 1,
+  
+  border.width = 1,
+  negDashed   = TRUE,
+  curveAll    = TRUE,
+  curveDefault = 0.35,
+  
+  font = 2
+)
+
+
+
+
+
+
+
+# Salvare il grafo del Network
+qgraph(plot_panss_T1, filetype='jpeg', dpi = 300)
+
+
+
+
+# test per vedere se gli edges sono significativi
+btnt_np <- bootnet(nwk_panss_T1,
+                   type = "nonparametric",
+                   statistics = "edge",
+                   nBoots = 100,
+                   verbose = FALSE,
+                   nCores = 1)
+plot(btnt_np,
+     order = "sample")
+
+plot(btnt_np, 
+     plot = "difference",
+     order = "sample")
+
+## estimating network  the stability
+
+
+b1 <- bootnet(nwk_panss_T1, boots = 1000, nCores = 4, statistics = "all", nBoots = 100, type = "case")
+
+
+## getting centrality coefficients
+
+corStability(b1)
+
+plot(b1, statistics = c("strength", "betweenness", "closeness", "expectedInfluence"))
+
+ggsave(filename = "stability_plot_1.jpeg", dpi = 300)
+
+
+#creating centrality plots
+
+c1 <- centralityPlot(plot_panss_T1, orderBy = "Strength")
+
+
+Sim1 <- netSimulator(
+  input = nwk_panss_T1, 
+  default = "EBICglasso",
+  nCases = seq(200, 1000, 200),
+  nReps = 100)
+
+
+plot(Sim1)
+
+## bridge symptoms
+
+
+mygroups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
+
+
+
+#costructing partial correlation matrix
+
+myedges <- getWmat(nwk_panss_T1)
+write.csv(myedges, "results/mynetworkedges.csv")
+
+#conta tutti gli edges
+sum(myedges != 0)
+
+
+
+#estimate bridge values for each node
+
+mybridge_T1 <- 
+  bridge(plot_panss_T1, communities = c('1', '1','1','1', '1','1', '1',
+                                        '2', '2', '2', '2', '2', '2', '2', 
+                                        '3', '3','3','3','3','3','3','3','3','3','3','3','3','3','3','3'
+  ), 
+  useCommunities = "all", directed = NULL, nodes = NULL)
+
+#get the values of bridge centrality indices
+summary(mybridge_T1)
+
+
+p <- plot(mybridge_T1)
+
+
+b2 <- bootnet(nwk_panss_T1,
+              type = "case",
+              nBoots  = 100,
+              statistics = c("edge", "strength", "betweenness", "bridgeStrength", "bridgeExpectedInfluence"),
+              communities = mygroups, #qui ho aggiunto anche gli indici di centralità bridge, quindi ho dovuto specificare chi sono i gruppi
+              verbose = FALSE)
+
+corStability(b2)
+
+
+plot(b2, statistics = c("bridgeStrength", "bridgeExpectedInfluence"))
+
+
+#create the bridge plot
+
+library(gridExtra)
+
+
+
+
+nodeNames_panss <- c(
+  # POSITIVE
+  PANSSP1 = "P1 – Delusions",
+  PANSSP2 = "P2 – Conceptual disorganization",
+  PANSSP3 = "P3 – Hallucinatory behavior",
+  PANSSP4 = "P4 – Excitement",
+  PANSSP5 = "P5 – Grandiosity",
+  PANSSP6 = "P6 – Suspiciousness",
+  PANSSP7 = "P7 – Hostility",
+  
+  # NEGATIVE
+  PANSSN1 = "N1 – Blunted affect",
+  PANSSN2 = "N2 – Emotional withdrawal",
+  PANSSN3 = "N3 – Poor rapport",
+  PANSSN4 = "N4 – Passive social withdrawal",
+  PANSSN5 = "N5 – Difficulty in abstract thinking",
+  PANSSN6 = "N6 – Lack of spontaneity",
+  PANSSN7 = "N7 – Stereotyped thinking",
+  
+  # GENERAL PSYCHOPATHOLOGY
+  PANSSG1  = "G1 – Somatic concern",
+  PANSSG2  = "G2 – Anxiety",
+  PANSSG3  = "G3 – Guilt feelings",
+  PANSSG4  = "G4 – Tension",
+  PANSSG5  = "G5 – Mannerisms and posturing",
+  PANSSG6  = "G6 – Depression",
+  PANSSG7  = "G7 – Motor retardation",
+  PANSSG8  = "G8 – Uncooperativeness",
+  PANSSG9  = "G9 – Unusual thought content",
+  PANSSG10 = "G10 – Disorientation",
+  PANSSG11 = "G11 – Poor attention",
+  PANSSG12 = "G12 – Lack of judgment and insight",
+  PANSSG13 = "G13 – Disturbance of volition",
+  PANSSG14 = "G14 – Poor impulse control",
+  PANSSG15 = "G15 – Preoccupation",
+  PANSSG16 = "G16 – Active social avoidance"
+)
+
+
+
+
+
+
+
+plot_panss_T1.2 <- qgraph(
+  nwk_panss_T1$graph,
+  layout = "spring",
+  
+  labels    = node_labels,
+  nodeNames = nodeNames_panss,
+  color     = colors,
+  groups = groups,
+  
+  legend = TRUE,
+  legend.mode = "names",
+  legend.cex  = 0.6,     # << legenda più piccola
+  
+  GLratio = 3.2,         # << più spazio al grafo
+  
+  label.cex   = 0.9,
+  label.color = "black",
+  label.prop  = 1,
+  
+  border.width = 1,
+  negDashed   = TRUE,
+  curveAll    = TRUE,
+  curveDefault = 0.35,
+  
+  font = 2
+)
+
+mybridge_T1 <- 
+  bridge(plot_panss_T1.2, communities = c('1', '1','1','1', '1','1', '1',
+                                          '2', '2', '2', '2', '2', '2', '2', 
+                                          '3', '3','3','3','3','3','3','3','3','3','3','3','3','3','3','3'
+  ), 
+  useCommunities = "all", directed = NULL, nodes = NULL)
+
+
+plot(mybridge_T1, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value", )
+
+
+dev.off()
+plot(mybridge_T1, order = "value")
+
+
+# Save the plot
+ggsave("mybridge_T1_plot.png", plot = last_plot(), width = 8, height = 6, dpi = 300)
+
+jpeg("mybridge_T1_plot.jpeg", width = 800, height = 600)
+
+#create bridge expected influence plot
+
+plot(mybridge_T2, include = "Bridge Expected Influence (1-step)", width = 4)
+dev.off()
+
+#estimate stability of bridge symptoms
+
+caseDrippingBoot <- bootnet(nwk_panss_T1, boots = 1000, type = "case", statistics = "all",
+                            communities = mygroups)
+
+
+corStability(caseDrippingBoot)
+
+plot(caseDrippingBoot, statistics = "bridgeStrength")
+
+plot(caseDrippingBoot, statistics = "bridgeExpectedInfluence")
+
+
+
+
+
+library(NetworkComparisonTest)
+
+p2 <-  NCT(nwk_panss_T0, nwk_panss_T1, it = 1000, test.edges = F,
+           edges = 'all')  
+
+summary(p2)
+
+
+
+
+
+######### PANSS GAUSSIAN T2 #############
+
+
+## datasets ##
+
+
+df_T2 <- net_impute %>% 
+  select(starts_with("T2PANSS")) %>% 
+  rename_with(~ sub("^T2", "", .x))
+
+
+
+
+
+## building the network
+
+nwk_panss_T2 <- estimateNetwork(df_T2, default = "EBICglasso")
+
+colors <- c(
+  # PANSS POSITIVE (P) – magenta caldo (molto visibile)
+  PANSSP1 = "#C51B7D",  # delusions
+  PANSSP2 = "#C51B7D",  # conceptual disorganization
+  PANSSP3 = "#C51B7D",  # hallucinatory behavior
+  PANSSP4 = "#C51B7D",  # excitement
+  PANSSP5 = "#C51B7D",  # grandiosity
+  PANSSP6 = "#C51B7D",  # suspiciousness
+  PANSSP7 = "#C51B7D",  # hostility
+  
+  # PANSS NEGATIVE (N) – blu chiaro ad alto contrasto
+  PANSSN1 = "#4C72B0",  # blunted affect
+  PANSSN2 = "#4C72B0",  # emotional withdrawal
+  PANSSN3 = "#4C72B0",  # poor rapport
+  PANSSN4 = "#4C72B0",  # passive social withdrawal
+  PANSSN5 = "#4C72B0",  # difficulty in abstract thinking
+  PANSSN6 = "#4C72B0",  # lack of spontaneity
+  PANSSN7 = "#4C72B0",  # stereotyped thinking
+  
+  # PANSS GENERAL (G) – verde petrolio scuro (non confonde col blu)
+  PANSSG1  = "#1B9E77", # somatic concern
+  PANSSG2  = "#1B9E77", # anxiety
+  PANSSG3  = "#1B9E77", # guilt feelings
+  PANSSG4  = "#1B9E77", # tension
+  PANSSG5  = "#1B9E77", # mannerisms
+  PANSSG6  = "#1B9E77", # depression
+  PANSSG7  = "#1B9E77", # motor retardation
+  PANSSG8  = "#1B9E77", # uncooperativeness
+  PANSSG9  = "#1B9E77", # unusual thought content
+  PANSSG10 = "#1B9E77", # disorientation
+  PANSSG11 = "#1B9E77", # poor attention
+  PANSSG12 = "#1B9E77", # lack of judgment
+  PANSSG13 = "#1B9E77", # disturbance of volition
+  PANSSG14 = "#1B9E77", # poor impulse control
+  PANSSG15 = "#1B9E77", # preoccupation
+  PANSSG16 = "#1B9E77"  # active social avoidance
+)
+
+
+
+node_labels <- c(
+  PANSSP1 = "P1", PANSSP2 = "P2", PANSSP3 = "P3",
+  PANSSP4 = "P4", PANSSP5 = "P5", PANSSP6 = "P6", PANSSP7 = "P7",
+  
+  PANSSN1 = "N1", PANSSN2 = "N2", PANSSN3 = "N3",
+  PANSSN4 = "N4", PANSSN5 = "N5", PANSSN6 = "N6", PANSSN7 = "N7",
+  
+  PANSSG1  = "G1",  PANSSG2  = "G2",  PANSSG3  = "G3",  PANSSG4  = "G4",
+  PANSSG5  = "G5",  PANSSG6  = "G6",  PANSSG7  = "G7",  PANSSG8  = "G8",
+  PANSSG9  = "G9",  PANSSG10 = "G10", PANSSG11 = "G11", PANSSG12 = "G12",
+  PANSSG13 = "G13", PANSSG14 = "G14", PANSSG15 = "G15", PANSSG16 = "G16"
+)
+
+
+nodeNames_panss <- c(
+  PANSSP1 = "Delusions",
+  PANSSP2 = "Conceptual disorganization",
+  PANSSP3 = "Hallucinatory behavior",
+  PANSSP4 = "Excitement",
+  PANSSP5 = "Grandiosity",
+  PANSSP6 = "Suspiciousness",
+  PANSSP7 = "Hostility",
+  
+  PANSSN1 = "Blunted affect",
+  PANSSN2 = "Emotional withdrawal",
+  PANSSN3 = "Poor rapport",
+  PANSSN4 = "Passive social withdrawal",
+  PANSSN5 = "Difficulty in abstract thinking",
+  PANSSN6 = "Lack of spontaneity",
+  PANSSN7 = "Stereotyped thinking",
+  
+  PANSSG1  = "Somatic concern",
+  PANSSG2  = "Anxiety",
+  PANSSG3  = "Guilt feelings",
+  PANSSG4  = "Tension",
+  PANSSG5  = "Mannerisms",
+  PANSSG6  = "Depression",
+  PANSSG7  = "Motor retardation",
+  PANSSG8  = "Uncooperativeness",
+  PANSSG9  = "Unusual thought content",
+  PANSSG10 = "Disorientation",
+  PANSSG11 = "Poor attention",
+  PANSSG12 = "Lack of judgment and insight",
+  PANSSG13 = "Disturbance of volition",
+  PANSSG14 = "Poor impulse control",
+  PANSSG15 = "Preoccupation",
+  PANSSG16 = "Active social avoidance"
+)
+
+
+groups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
+
+
+
+
+plot_panss_T2 <- qgraph(
+  nwk_panss_T2$graph,
+  layout = "spring",
+  
+  labels    = node_labels,
+  nodeNames = nodeNames_panss,
+  color     = colors,
+  groups = groups,
+  
+  legend = TRUE,
+  legend.mode = "names",
+  legend.cex  = 0.6,     # << legenda più piccola
+  
+  GLratio = 3.2,         # << più spazio al grafo
+  
+  label.cex   = 0.9,
+  label.color = "black",
+  label.prop  = 1,
+  
+  border.width = 1,
+  negDashed   = TRUE,
+  curveAll    = TRUE,
+  curveDefault = 0.35,
+  
+  font = 2
+)
+
+
+
+
+
+
+
+# Salvare il grafo del Network
+qgraph(plot_panss_T2, filetype='jpeg', dpi = 300)
+
+
+
+
+# test per vedere se gli edges sono significativi
+btnt_np <- bootnet(nwk_panss_T2,
+                   type = "nonparametric",
+                   statistics = "edge",
+                   nBoots = 100,
+                   verbose = FALSE,
+                   nCores = 1)
+plot(btnt_np,
+     order = "sample")
+
+plot(btnt_np, 
+     plot = "difference",
+     order = "sample")
+
+## estimating network  the stability
+
+
+b1 <- bootnet(nwk_panss_T2, boots = 1000, nCores = 4, statistics = "all", nBoots = 100, type = "case")
+
+
+## getting centrality coefficients
+
+corStability(b1)
+
+plot(b1, statistics = c("strength", "betweenness", "closeness", "expectedInfluence"))
+
+ggsave(filename = "stability_plot_1.jpeg", dpi = 300)
+
+
+#creating centrality plots
+
+c1 <- centralityPlot(plot_panss_T2, orderBy = "Strength")
+
+
+Sim1 <- netSimulator(
+  input = nwk_panss_T2, 
+  default = "EBICglasso",
+  nCases = seq(200, 1000, 200),
+  nReps = 100)
+
+
+plot(Sim1)
+
+## bridge symptoms
+
+
+mygroups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
+
+
+
+#costructing partial correlation matrix
+
+myedges <- getWmat(nwk_panss_T2)
+write.csv(myedges, "results/mynetworkedges.csv")
+
+#conta tutti gli edges
+sum(myedges != 0)
+
+
+
+#estimate bridge values for each node
+
+mybridge_T2 <- 
+  bridge(plot_panss_T2, communities = c('1', '1','1','1', '1','1', '1',
+                                        '2', '2', '2', '2', '2', '2', '2', 
+                                        '3', '3','3','3','3','3','3','3','3','3','3','3','3','3','3','3'
+  ), 
+  useCommunities = "all", directed = NULL, nodes = NULL)
+
+#get the values of bridge centrality indices
+summary(mybridge_T2)
+
+
+p <- plot(mybridge_T2)
+
+
+b2 <- bootnet(nwk_panss_T2,
+              type = "case",
+              nBoots  = 100,
+              statistics = c("edge", "strength", "betweenness", "bridgeStrength", "bridgeExpectedInfluence"),
+              communities = mygroups, #qui ho aggiunto anche gli indici di centralità bridge, quindi ho dovuto specificare chi sono i gruppi
+              verbose = FALSE)
+
+corStability(b2)
+
+
+plot(b2, statistics = c("bridgeStrength", "bridgeExpectedInfluence"))
+
+
+#create the bridge plot
+
+library(gridExtra)
+
+
+
+
+nodeNames_panss <- c(
+  # POSITIVE
+  PANSSP1 = "P1 – Delusions",
+  PANSSP2 = "P2 – Conceptual disorganization",
+  PANSSP3 = "P3 – Hallucinatory behavior",
+  PANSSP4 = "P4 – Excitement",
+  PANSSP5 = "P5 – Grandiosity",
+  PANSSP6 = "P6 – Suspiciousness",
+  PANSSP7 = "P7 – Hostility",
+  
+  # NEGATIVE
+  PANSSN1 = "N1 – Blunted affect",
+  PANSSN2 = "N2 – Emotional withdrawal",
+  PANSSN3 = "N3 – Poor rapport",
+  PANSSN4 = "N4 – Passive social withdrawal",
+  PANSSN5 = "N5 – Difficulty in abstract thinking",
+  PANSSN6 = "N6 – Lack of spontaneity",
+  PANSSN7 = "N7 – Stereotyped thinking",
+  
+  # GENERAL PSYCHOPATHOLOGY
+  PANSSG1  = "G1 – Somatic concern",
+  PANSSG2  = "G2 – Anxiety",
+  PANSSG3  = "G3 – Guilt feelings",
+  PANSSG4  = "G4 – Tension",
+  PANSSG5  = "G5 – Mannerisms and posturing",
+  PANSSG6  = "G6 – Depression",
+  PANSSG7  = "G7 – Motor retardation",
+  PANSSG8  = "G8 – Uncooperativeness",
+  PANSSG9  = "G9 – Unusual thought content",
+  PANSSG10 = "G10 – Disorientation",
+  PANSSG11 = "G11 – Poor attention",
+  PANSSG12 = "G12 – Lack of judgment and insight",
+  PANSSG13 = "G13 – Disturbance of volition",
+  PANSSG14 = "G14 – Poor impulse control",
+  PANSSG15 = "G15 – Preoccupation",
+  PANSSG16 = "G16 – Active social avoidance"
+)
+
+
+
+
+
+
+
+plot_panss_T2.2 <- qgraph(
+  nwk_panss_T2$graph,
+  layout = "spring",
+  
+  labels    = node_labels,
+  nodeNames = nodeNames_panss,
+  color     = colors,
+  groups = groups,
+  
+  legend = TRUE,
+  legend.mode = "names",
+  legend.cex  = 0.6,     # << legenda più piccola
+  
+  GLratio = 3.2,         # << più spazio al grafo
+  
+  label.cex   = 0.9,
+  label.color = "black",
+  label.prop  = 1,
+  
+  border.width = 1,
+  negDashed   = TRUE,
+  curveAll    = TRUE,
+  curveDefault = 0.35,
+  
+  font = 2
+)
+
+mybridge_T2 <- 
+  bridge(plot_panss_T2.2, communities = c('1', '1','1','1', '1','1', '1',
+                                          '2', '2', '2', '2', '2', '2', '2', 
+                                          '3', '3','3','3','3','3','3','3','3','3','3','3','3','3','3','3'
+  ), 
+  useCommunities = "all", directed = NULL, nodes = NULL)
+
+
+plot(mybridge_T2, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value", )
+
+
+dev.off()
+plot(mybridge_T2, order = "value")
+
+
+# Save the plot
+ggsave("mybridge_T2_plot.png", plot = last_plot(), width = 8, height = 6, dpi = 300)
+
+jpeg("mybridge_T2_plot.jpeg", width = 800, height = 600)
+
+#create bridge expected influence plot
+
+plot(mybridge_T2, include = "Bridge Expected Influence (1-step)", width = 4)
+dev.off()
+
+#estimate stability of bridge symptoms
+
+caseDrippingBoot <- bootnet(nwk_panss_T2, boots = 1000, type = "case", statistics = "all",
+                            communities = mygroups)
+
+
+corStability(caseDrippingBoot)
+
+plot(caseDrippingBoot, statistics = "bridgeStrength")
+
+plot(caseDrippingBoot, statistics = "bridgeExpectedInfluence")
+
+
+
+
+p3 <- NCT(data1 = nwk_panss_T1, data2 =  nwk_panss_T2, it = 1000, test.edges = F,
+          edges = 'all', p.adjust.methods = "bonferroni")
+
+summary(p3)
+
+
+p4 <- NCT(data1 = nwk_panss_T0, data2 =  nwk_panss_T2, it = 1000, test.edges = F,
+          edges = 'all', p.adjust.methods = "bonferroni")
+
+summary(p4)
+
+
+## comparing bridge centrality indices across three time points ####
+compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
+                           decreasing = TRUE,
+                           legendName = "Time") {
+  
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  
+  # Mappa: NOMI (come compaiono ora) -> "Codice - Nome"
+  node_label_map <- c(
+    "Delusions" = "P1 - Delusions",
+    "Conceptual disorganization" = "P2 - Conceptual disorganization",
+    "Hallucinatory behavior" = "P3 - Hallucinatory behavior",
+    "Excitement" = "P4 - Excitement",
+    "Grandiosity" = "P5 - Grandiosity",
+    "Suspiciousness" = "P6 - Suspiciousness",
+    "Hostility" = "P7 - Hostility",
+    
+    "Blunted affect" = "N1 - Blunted affect",
+    "Emotional withdrawal" = "N2 - Emotional withdrawal",
+    "Poor rapport" = "N3 - Poor rapport",
+    "Passive social withdrawal" = "N4 - Passive social withdrawal",
+    "Difficulty in abstract thinking" = "N5 - Difficulty in abstract thinking",
+    "Lack of spontaneity" = "N6 - Lack of spontaneity",
+    "Stereotyped thinking" = "N7 - Stereotyped thinking",
+    
+    "Somatic concern" = "G1 - Somatic concern",
+    "Anxiety" = "G2 - Anxiety",
+    "Guilt feelings" = "G3 - Guilt feelings",
+    "Tension" = "G4 - Tension",
+    "Mannerisms" = "G5 - Mannerisms and posturing",
+    "Depression" = "G6 - Depression",
+    "Motor retardation" = "G7 - Motor retardation",
+    "Uncooperativeness" = "G8 - Uncooperativeness",
+    "Unusual thought content" = "G9 - Unusual thought content",
+    "Disorientation" = "G10 - Disorientation",
+    "Poor attention" = "G11 - Poor attention",
+    "Lack of judgment and insight" = "G12 - Lack of judgment and insight",
+    "Disturbance of volition" = "G13 - Disturbance of volition",
+    "Poor impulse control" = "G14 - Poor impulse control",
+    "Preoccupation" = "G15 - Preoccupation",
+    "Active social avoidance" = "G16 - Active social avoidance"
+  )
+  
+  extract_bridge <- function(bridge_obj, time_label) {
+    s <- summary(bridge_obj)
+    tibble(
+      node = rownames(s),
+      `Bridge Strength` = s$Bridge.Strength,
+      `Bridge Expected Influence (1-step)` = s$Bridge.Expected.Influence..1.step.,
+      Time = time_label
+    )
+  }
+  
+  df <- bind_rows(
+    extract_bridge(bridge_T0, "T0"),
+    extract_bridge(bridge_T1, "T1"),
+    extract_bridge(bridge_T2, "T2")
+  ) %>%
+    pivot_longer(
+      cols = c(`Bridge Strength`, `Bridge Expected Influence (1-step)`),
+      names_to = "type",
+      values_to = "value"
+    ) %>%
+    filter(!is.na(value), !is.na(node)) %>%
+    mutate(
+      # sostituisci solo quando matcha; altrimenti lascia com'è
+      node = ifelse(node %in% names(node_label_map), node_label_map[node], node)
+    )
+  
+  # Ordine nodi fissato su T0 + Bridge Strength
+  ref_order <- df %>%
+    filter(Time == "T0", type == "Bridge Strength") %>%
+    arrange(if (decreasing) desc(value) else value) %>%
+    pull(node)
+  
+  df <- df %>%
+    mutate(
+      # con coord_flip: rev(ref_order) mette i più alti IN ALTO
+      node = factor(node, levels = rev(ref_order)),
+      Time = factor(Time, levels = c("T0", "T1", "T2"))
+    )
+  
+  ggplot(df, aes(x = node, y = value, color = Time, group = Time)) +
+    geom_line(linewidth = 1.2) +
+    geom_point(size = 2.6) +
+    coord_flip() +
+    facet_grid(~type, scales = "free_x") +
+    scale_color_manual(
+      name = legendName,
+      values = c("T0" = "#1B9E77", "T1" = "#D95F02", "T2" = "#7570B3")
+    ) +
+    labs(x = NULL, y = NULL) +
+    theme_bw(base_size = 12) +
+    theme(
+      legend.position = "top",
+      strip.background = element_rect(fill = "grey90"),
+      panel.grid.minor = element_blank()
+    )
+}
+
+compareBridge3(
+  bridge_T0 = mybridge_T0,
+  bridge_T1 = mybridge_T1,
+  bridge_T2 = mybridge_T2
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+## comparing bridge centrality indices across three time points ####
+compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
+                           decreasing = TRUE,
+                           legendName = "Time") {
+  
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  
+  # Mappa: NOMI (come compaiono ora) -> "Codice - Nome"
+  node_label_map <- c(
+    "Delusions" = "P1 - Delusions",
+    "Conceptual disorganization" = "P2 - Conceptual disorganization",
+    "Hallucinatory behavior" = "P3 - Hallucinatory behavior",
+    "Excitement" = "P4 - Excitement",
+    "Grandiosity" = "P5 - Grandiosity",
+    "Suspiciousness" = "P6 - Suspiciousness",
+    "Hostility" = "P7 - Hostility",
+    
+    "Blunted affect" = "N1 - Blunted affect",
+    "Emotional withdrawal" = "N2 - Emotional withdrawal",
+    "Poor rapport" = "N3 - Poor rapport",
+    "Passive social withdrawal" = "N4 - Passive social withdrawal",
+    "Difficulty in abstract thinking" = "N5 - Difficulty in abstract thinking",
+    "Lack of spontaneity" = "N6 - Lack of spontaneity",
+    "Stereotyped thinking" = "N7 - Stereotyped thinking",
+    
+    "Somatic concern" = "G1 - Somatic concern",
+    "Anxiety" = "G2 - Anxiety",
+    "Guilt feelings" = "G3 - Guilt feelings",
+    "Tension" = "G4 - Tension",
+    "Mannerisms" = "G5 - Mannerisms and posturing",
+    "Depression" = "G6 - Depression",
+    "Motor retardation" = "G7 - Motor retardation",
+    "Uncooperativeness" = "G8 - Uncooperativeness",
+    "Unusual thought content" = "G9 - Unusual thought content",
+    "Disorientation" = "G10 - Disorientation",
+    "Poor attention" = "G11 - Poor attention",
+    "Lack of judgment and insight" = "G12 - Lack of judgment and insight",
+    "Disturbance of volition" = "G13 - Disturbance of volition",
+    "Poor impulse control" = "G14 - Poor impulse control",
+    "Preoccupation" = "G15 - Preoccupation",
+    "Active social avoidance" = "G16 - Active social avoidance"
+  )
+  
+  extract_bridge <- function(bridge_obj, time_label) {
+    s <- summary(bridge_obj)
+    tibble(
+      node = rownames(s),
+      `Bridge Strength` = s$Bridge.Strength,
+      Time = time_label
+    )
+  }
+  
+  df <- bind_rows(
+    extract_bridge(bridge_T0, "T0"),
+    extract_bridge(bridge_T1, "T1"),
+    extract_bridge(bridge_T2, "T2")
+  ) %>%
+    pivot_longer(
+      cols = c(`Bridge Strength`),
+      names_to = "type",
+      values_to = "value"
+    ) %>%
+    filter(!is.na(value), !is.na(node)) %>%
+    mutate(
+      # sostituisci solo quando matcha; altrimenti lascia com'è
+      node = ifelse(node %in% names(node_label_map), node_label_map[node], node)
+    )
+  
+  # Ordine nodi fissato su T0 + Bridge Strength
+  ref_order <- df %>%
+    filter(Time == "T0", type == "Bridge Strength") %>%
+    arrange(if (decreasing) desc(value) else value) %>%
+    pull(node)
+  
+  df <- df %>%
+    mutate(
+      # con coord_flip: rev(ref_order) mette i più alti IN ALTO
+      node = factor(node, levels = rev(ref_order)),
+      Time = factor(Time, levels = c("T0", "T1", "T2"))
+    )
+  
+  ggplot(df, aes(x = node, y = value, color = Time, group = Time)) +
+    geom_line(linewidth = 1.2) +
+    geom_point(size = 2.6) +
+    coord_flip() +
+    facet_grid(~type, scales = "free_x") +
+    scale_color_manual(
+      name = legendName,
+      values = c("T0" = "#1B9E77", "T1" = "#D95F02", "T2" = "#7570B3")
+    ) +
+    labs(x = NULL, y = NULL) +
+    theme_bw(base_size = 12) +
+    theme(
+      legend.position = "top",
+      strip.background = element_rect(fill = "grey90"),
+      panel.grid.minor = element_blank()
+    )
+}
+
+compareBridge3(
+  bridge_T0 = mybridge_T0,
+  bridge_T1 = mybridge_T1,
+  bridge_T2 = mybridge_T2
+)
+
+
