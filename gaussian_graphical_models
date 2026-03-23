@@ -7,21 +7,18 @@ source("script/pre-processing_ALL_COVARIATES.R")
 
 ## datasets ##
 
-
-
+# Select baseline PANSS variables only
 df_T0 <-  net_impute %>% 
   select(starts_with("PANSS")) 
 
 
-
-
-
 ## building the network
 
+# Estimate the baseline Gaussian Graphical Model using EBICglasso
 nwk_panss_T0 <- estimateNetwork(df_T0, default = "EBICglasso")
 
 colors <- c(
-  # PANSS POSITIVE (P) – magenta caldo (molto visibile)
+  # PANSS POSITIVE (P) – warm magenta (high visibility)
   PANSSP1 = "#C51B7D",  # delusions
   PANSSP2 = "#C51B7D",  # conceptual disorganization
   PANSSP3 = "#C51B7D",  # hallucinatory behavior
@@ -30,7 +27,7 @@ colors <- c(
   PANSSP6 = "#C51B7D",  # suspiciousness
   PANSSP7 = "#C51B7D",  # hostility
   
-  # PANSS NEGATIVE (N) – blu chiaro ad alto contrasto
+  # PANSS NEGATIVE (N) – high-contrast light blue
   PANSSN1 = "#4C72B0",  # blunted affect
   PANSSN2 = "#4C72B0",  # emotional withdrawal
   PANSSN3 = "#4C72B0",  # poor rapport
@@ -39,7 +36,7 @@ colors <- c(
   PANSSN6 = "#4C72B0",  # lack of spontaneity
   PANSSN7 = "#4C72B0",  # stereotyped thinking
   
-  # PANSS GENERAL (G) – verde petrolio scuro (non confonde col blu)
+  # PANSS GENERAL (G) – dark teal green (clearly distinct from blue)
   PANSSG1  = "#1B9E77", # somatic concern
   PANSSG2  = "#1B9E77", # anxiety
   PANSSG3  = "#1B9E77", # guilt feelings
@@ -58,8 +55,7 @@ colors <- c(
   PANSSG16 = "#1B9E77"  # active social avoidance
 )
 
-
-
+# Abbreviated node labels for plotting
 node_labels <- c(
   PANSSP1 = "P1", PANSSP2 = "P2", PANSSP3 = "P3",
   PANSSP4 = "P4", PANSSP5 = "P5", PANSSP6 = "P6", PANSSP7 = "P7",
@@ -73,7 +69,7 @@ node_labels <- c(
   PANSSG13 = "G13", PANSSG14 = "G14", PANSSG15 = "G15", PANSSG16 = "G16"
 )
 
-
+# Full node names for legends and interactive display
 nodeNames_panss <- c(
   PANSSP1 = "Delusions",
   PANSSP2 = "Conceptual disorganization",
@@ -109,11 +105,10 @@ nodeNames_panss <- c(
   PANSSG16 = "Active social avoidance"
 )
 
-
+# Predefined symptom domains used for plotting and bridge estimation
 groups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
 
-
-
+# Plot the estimated baseline network
 plot_panss_T0 <- qgraph(
   nwk_panss_T0$graph,
   layout = "spring",
@@ -125,9 +120,9 @@ plot_panss_T0 <- qgraph(
   
   legend = TRUE,
   legend.mode = "names",
-  legend.cex  = 0.6,     # legenda più piccola
+  legend.cex  = 0.6,     
   
-  GLratio = 3.2,         # più spazio al grafo
+  GLratio = 3.2,         
   
   label.cex   = 0.9,
   label.color = "black",
@@ -138,30 +133,24 @@ plot_panss_T0 <- qgraph(
   curveAll    = TRUE,
   curveDefault = 0.35,
   
-  # <<< QUI CAMBI I COLORI DEGLI EDGES >>>
-  posCol = "blue",   # edge positivi in blu
-  negCol = "red",    # edge negativi in rosso
+  # Edge colors are explicitly defined here
+  posCol = "blue",   
+  negCol = "red",    
   
   font = 2
 )
 
-
-
-
-
-# Salvare il grafo del Network
+# Save the network graph
 qgraph(plot_panss_T0, filetype='jpeg', dpi = 300)
 
-
-
-
-# test per vedere se gli edges sono significativi
+# Nonparametric bootstrap to assess edge-weight accuracy
 btnt_np <- bootnet(nwk_panss_T0,
                    type = "nonparametric",
                    statistics = "edge",
                    nBoots = 100,
                    verbose = FALSE,
                    nCores = 1)
+
 plot(btnt_np,
      order = "sample")
 
@@ -169,13 +158,12 @@ plot(btnt_np,
      plot = "difference",
      order = "sample")
 
-## estimating network  the stability
+## estimating network stability
 
-
+# Case-dropping bootstrap for centrality stability estimation
 b1 <- bootnet(nwk_panss_T0, boots = 1000, nCores = 4, statistics = "all", nBoots = 100, type = "case")
 
-
-## getting centrality coefficients
+## obtaining centrality stability coefficients
 
 corStability(b1)
 
@@ -183,40 +171,30 @@ plot(b1, statistics = c("strength", "betweenness", "closeness", "expectedInfluen
 
 ggsave(filename = "stability_plot_1.jpeg", dpi = 300)
 
-
-#creating centrality plots
-
+# Create centrality plots
 c1 <- centralityPlot(plot_panss_T0, orderBy = "Strength")
 
-
+# Simulation-based recoverability analysis
 Sim1 <- netSimulator(
   input = nwk_panss_T0, 
   default = "EBICglasso",
   nCases = seq(200, 1000, 200),
   nReps = 100)
 
-
 plot(Sim1)
 
 ## bridge symptoms
 
-
 mygroups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
 
-
-
-#costructing partial correlation matrix
-
+# Extract the partial correlation matrix
 myedges <- getWmat(nwk_panss_T0)
 write.csv(myedges, "results/mynetworkedges.csv")
 
-#conta tutti gli edges
+# Count all non-zero edges
 sum(myedges != 0)
 
-
-
-#estimate bridge values for each node
-
+# Estimate bridge centrality values for each node
 mybridge_T0 <- 
   bridge(plot_panss_T0, communities = c('1', '1','1','1', '1','1', '1',
                                           '2', '2', '2', '2', '2', '2', '2', 
@@ -224,33 +202,27 @@ mybridge_T0 <-
   ), 
   useCommunities = "all", directed = NULL, nodes = NULL)
 
-#get the values of bridge centrality indices
+# Obtain bridge centrality summary values
 summary(mybridge_T0)
-
 
 p <- plot(mybridge_T0)
 
-
+# Case-dropping bootstrap including bridge centrality indices
 b2 <- bootnet(nwk_panss_T0,
               type = "case",
               nBoots  = 100,
               statistics = c("edge", "strength", "betweenness", "bridgeStrength", "bridgeExpectedInfluence"),
-              communities = mygroups, #qui ho aggiunto anche gli indici di centralità bridge, quindi ho dovuto specificare chi sono i gruppi
+              communities = mygroups, # bridge indices require explicit community specification
               verbose = FALSE)
 
 corStability(b2)
 
-
 plot(b2, statistics = c("bridgeStrength"))
 
-
-#create the bridge plot
-
+# Create the bridge plot
 library(gridExtra)
 
-
-
-
+# Extended node labels for bridge plots
 nodeNames_panss <- c(
   # POSITIVE
   PANSSP1 = "P1 – Delusions",
@@ -289,12 +261,7 @@ nodeNames_panss <- c(
   PANSSG16 = "G16 – Active social avoidance"
 )
 
-
-
-
-
-
-
+# Re-plot the network with extended node labels for bridge analysis
 plot_panss_T0.2 <- qgraph(
   nwk_panss_T0$graph,
   layout = "spring",
@@ -306,9 +273,9 @@ plot_panss_T0.2 <- qgraph(
   
   legend = TRUE,
   legend.mode = "names",
-  legend.cex  = 0.6,     # << legenda più piccola
+  legend.cex  = 0.6,     
   
-  GLratio = 3.2,         # << più spazio al grafo
+  GLratio = 3.2,         
   
   label.cex   = 0.9,
   label.color = "black",
@@ -329,29 +296,23 @@ mybridge_T0 <-
   ), 
   useCommunities = "all", directed = NULL, nodes = NULL)
 
-
-plot(mybridge_T0, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value", )
-
+plot(mybridge_T0, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value")
 
 dev.off()
 plot(mybridge_T0, order = "value")
 
-
-# Save the plot
+# Save the bridge plot
 ggsave("mybridge_T0_plot.png", plot = last_plot(), width = 8, height = 6, dpi = 300)
 
 jpeg("mybridge_T0_plot.jpeg", width = 800, height = 600)
 
-#create bridge expected influence plot
-
+# Create bridge expected influence plot
 plot(mybridge_T0, include = "Bridge Expected Influence (1-step)", width = 4)
 dev.off()
 
-#estimate stability of bridge symptoms
-
+# Estimate stability of bridge centrality indices
 caseDrippingBoot <- bootnet(nwk_panss_T0, boots = 1000, type = "case", statistics = "all",
                             communities = mygroups)
-
 
 corStability(caseDrippingBoot)
 
@@ -368,22 +329,18 @@ plot(caseDrippingBoot, statistics = "bridgeExpectedInfluence")
 
 ## datasets ##
 
-
+# Select 12-month PANSS variables and remove the T1 prefix for harmonization
 df_T1 <- net_impute %>% 
   select(starts_with("T1PANSS")) %>% 
   rename_with(~ sub("^T1", "", .x))
 
-
-
-
-
-
 ## building the network
 
+# Estimate the 12-month Gaussian Graphical Model using EBICglasso
 nwk_panss_T1 <- estimateNetwork(df_T1, default = "EBICglasso")
 
 colors <- c(
-  # PANSS POSITIVE (P) – magenta caldo (molto visibile)
+  # PANSS POSITIVE (P) – warm magenta (high visibility)
   PANSSP1 = "#C51B7D",  # delusions
   PANSSP2 = "#C51B7D",  # conceptual disorganization
   PANSSP3 = "#C51B7D",  # hallucinatory behavior
@@ -392,7 +349,7 @@ colors <- c(
   PANSSP6 = "#C51B7D",  # suspiciousness
   PANSSP7 = "#C51B7D",  # hostility
   
-  # PANSS NEGATIVE (N) – blu chiaro ad alto contrasto
+  # PANSS NEGATIVE (N) – high-contrast light blue
   PANSSN1 = "#4C72B0",  # blunted affect
   PANSSN2 = "#4C72B0",  # emotional withdrawal
   PANSSN3 = "#4C72B0",  # poor rapport
@@ -401,7 +358,7 @@ colors <- c(
   PANSSN6 = "#4C72B0",  # lack of spontaneity
   PANSSN7 = "#4C72B0",  # stereotyped thinking
   
-  # PANSS GENERAL (G) – verde petrolio scuro (non confonde col blu)
+  # PANSS GENERAL (G) – dark teal green
   PANSSG1  = "#1B9E77", # somatic concern
   PANSSG2  = "#1B9E77", # anxiety
   PANSSG3  = "#1B9E77", # guilt feelings
@@ -420,8 +377,7 @@ colors <- c(
   PANSSG16 = "#1B9E77"  # active social avoidance
 )
 
-
-
+# Abbreviated node labels
 node_labels <- c(
   PANSSP1 = "P1", PANSSP2 = "P2", PANSSP3 = "P3",
   PANSSP4 = "P4", PANSSP5 = "P5", PANSSP6 = "P6", PANSSP7 = "P7",
@@ -435,6 +391,7 @@ node_labels <- c(
   PANSSG13 = "G13", PANSSG14 = "G14", PANSSG15 = "G15", PANSSG16 = "G16"
 )
 
+# Full node names
 nodeNames_panss <- c(
   PANSSP1 = "Delusions",
   PANSSP2 = "Conceptual disorganization",
@@ -470,12 +427,9 @@ nodeNames_panss <- c(
   PANSSG16 = "Active social avoidance"
 )
 
-
 groups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
 
-
-
-
+# Plot the 12-month network
 plot_panss_T1 <- qgraph(
   nwk_panss_T1$graph,
   layout = "spring",
@@ -487,9 +441,9 @@ plot_panss_T1 <- qgraph(
   
   legend = TRUE,
   legend.mode = "names",
-  legend.cex  = 0.6,     # << legenda più piccola
+  legend.cex  = 0.6,     
   
-  GLratio = 3.2,         # << più spazio al grafo
+  GLratio = 3.2,         
   
   label.cex   = 0.9,
   label.color = "black",
@@ -503,25 +457,17 @@ plot_panss_T1 <- qgraph(
   font = 2
 )
 
-
-
-
-
-
-
-# Salvare il grafo del Network
+# Save the network graph
 qgraph(plot_panss_T1, filetype='jpeg', dpi = 300)
 
-
-
-
-# test per vedere se gli edges sono significativi
+# Nonparametric bootstrap to assess edge-weight accuracy
 btnt_np <- bootnet(nwk_panss_T1,
                    type = "nonparametric",
                    statistics = "edge",
                    nBoots = 100,
                    verbose = FALSE,
                    nCores = 1)
+
 plot(btnt_np,
      order = "sample")
 
@@ -529,13 +475,12 @@ plot(btnt_np,
      plot = "difference",
      order = "sample")
 
-## estimating network  the stability
+## estimating network stability
 
-
+# Case-dropping bootstrap for centrality stability estimation
 b1 <- bootnet(nwk_panss_T1, boots = 1000, nCores = 4, statistics = "all", nBoots = 100, type = "case")
 
-
-## getting centrality coefficients
+## obtaining centrality stability coefficients
 
 corStability(b1)
 
@@ -543,40 +488,30 @@ plot(b1, statistics = c("strength", "betweenness", "closeness", "expectedInfluen
 
 ggsave(filename = "stability_plot_1.jpeg", dpi = 300)
 
-
-#creating centrality plots
-
+# Create centrality plots
 c1 <- centralityPlot(plot_panss_T1, orderBy = "Strength")
 
-
+# Simulation-based recoverability analysis
 Sim1 <- netSimulator(
   input = nwk_panss_T1, 
   default = "EBICglasso",
   nCases = seq(200, 1000, 200),
   nReps = 100)
 
-
 plot(Sim1)
 
 ## bridge symptoms
 
-
 mygroups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
 
-
-
-#costructing partial correlation matrix
-
+# Extract the partial correlation matrix
 myedges <- getWmat(nwk_panss_T1)
 write.csv(myedges, "results/mynetworkedges.csv")
 
-#conta tutti gli edges
+# Count all non-zero edges
 sum(myedges != 0)
 
-
-
-#estimate bridge values for each node
-
+# Estimate bridge centrality values for each node
 mybridge_T1 <- 
   bridge(plot_panss_T1, communities = c('1', '1','1','1', '1','1', '1',
                                         '2', '2', '2', '2', '2', '2', '2', 
@@ -584,33 +519,27 @@ mybridge_T1 <-
   ), 
   useCommunities = "all", directed = NULL, nodes = NULL)
 
-#get the values of bridge centrality indices
+# Obtain bridge centrality summary values
 summary(mybridge_T1)
-
 
 p <- plot(mybridge_T1)
 
-
+# Case-dropping bootstrap including bridge centrality indices
 b2 <- bootnet(nwk_panss_T1,
               type = "case",
               nBoots  = 100,
               statistics = c("edge", "strength", "betweenness", "bridgeStrength", "bridgeExpectedInfluence"),
-              communities = mygroups, #qui ho aggiunto anche gli indici di centralità bridge, quindi ho dovuto specificare chi sono i gruppi
+              communities = mygroups, # bridge indices require explicit community specification
               verbose = FALSE)
 
 corStability(b2)
 
-
 plot(b2, statistics = c("bridgeStrength", "bridgeExpectedInfluence"))
 
-
-#create the bridge plot
-
+# Create the bridge plot
 library(gridExtra)
 
-
-
-
+# Extended node labels for bridge plots
 nodeNames_panss <- c(
   # POSITIVE
   PANSSP1 = "P1 – Delusions",
@@ -649,12 +578,7 @@ nodeNames_panss <- c(
   PANSSG16 = "G16 – Active social avoidance"
 )
 
-
-
-
-
-
-
+# Re-plot the network with extended node labels for bridge analysis
 plot_panss_T1.2 <- qgraph(
   nwk_panss_T1$graph,
   layout = "spring",
@@ -666,9 +590,9 @@ plot_panss_T1.2 <- qgraph(
   
   legend = TRUE,
   legend.mode = "names",
-  legend.cex  = 0.6,     # << legenda più piccola
+  legend.cex  = 0.6,     
   
-  GLratio = 3.2,         # << più spazio al grafo
+  GLratio = 3.2,         
   
   label.cex   = 0.9,
   label.color = "black",
@@ -689,29 +613,23 @@ mybridge_T1 <-
   ), 
   useCommunities = "all", directed = NULL, nodes = NULL)
 
-
-plot(mybridge_T1, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value", )
-
+plot(mybridge_T1, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value")
 
 dev.off()
 plot(mybridge_T1, order = "value")
 
-
-# Save the plot
+# Save the bridge plot
 ggsave("mybridge_T1_plot.png", plot = last_plot(), width = 8, height = 6, dpi = 300)
 
 jpeg("mybridge_T1_plot.jpeg", width = 800, height = 600)
 
-#create bridge expected influence plot
-
-plot(mybridge_T2, include = "Bridge Expected Influence (1-step)", width = 4)
+# Create bridge expected influence plot
+plot(mybridge_T1, include = "Bridge Expected Influence (1-step)", width = 4)
 dev.off()
 
-#estimate stability of bridge symptoms
-
+# Estimate stability of bridge centrality indices
 caseDrippingBoot <- bootnet(nwk_panss_T1, boots = 1000, type = "case", statistics = "all",
                             communities = mygroups)
-
 
 corStability(caseDrippingBoot)
 
@@ -719,13 +637,10 @@ plot(caseDrippingBoot, statistics = "bridgeStrength")
 
 plot(caseDrippingBoot, statistics = "bridgeExpectedInfluence")
 
-
-
-
-
+# Compare baseline and 12-month networks using the Network Comparison Test
 library(NetworkComparisonTest)
 
-p2 <-  NCT(nwk_panss_T0, nwk_panss_T1, it = 1000, test.edges = F,
+p2 <-  NCT(nwk_panss_T0, nwk_panss_T1, it = 5000, test.edges = F,
            edges = 'all')  
 
 summary(p2)
@@ -739,21 +654,18 @@ summary(p2)
 
 ## datasets ##
 
-
+# Select 24-month PANSS variables and remove the T2 prefix for harmonization
 df_T2 <- net_impute %>% 
   select(starts_with("T2PANSS")) %>% 
   rename_with(~ sub("^T2", "", .x))
 
-
-
-
-
 ## building the network
 
+# Estimate the 24-month Gaussian Graphical Model using EBICglasso
 nwk_panss_T2 <- estimateNetwork(df_T2, default = "EBICglasso")
 
 colors <- c(
-  # PANSS POSITIVE (P) – magenta caldo (molto visibile)
+  # PANSS POSITIVE (P) – warm magenta (high visibility)
   PANSSP1 = "#C51B7D",  # delusions
   PANSSP2 = "#C51B7D",  # conceptual disorganization
   PANSSP3 = "#C51B7D",  # hallucinatory behavior
@@ -762,7 +674,7 @@ colors <- c(
   PANSSP6 = "#C51B7D",  # suspiciousness
   PANSSP7 = "#C51B7D",  # hostility
   
-  # PANSS NEGATIVE (N) – blu chiaro ad alto contrasto
+  # PANSS NEGATIVE (N) – high-contrast light blue
   PANSSN1 = "#4C72B0",  # blunted affect
   PANSSN2 = "#4C72B0",  # emotional withdrawal
   PANSSN3 = "#4C72B0",  # poor rapport
@@ -771,7 +683,7 @@ colors <- c(
   PANSSN6 = "#4C72B0",  # lack of spontaneity
   PANSSN7 = "#4C72B0",  # stereotyped thinking
   
-  # PANSS GENERAL (G) – verde petrolio scuro (non confonde col blu)
+  # PANSS GENERAL (G) – dark teal green
   PANSSG1  = "#1B9E77", # somatic concern
   PANSSG2  = "#1B9E77", # anxiety
   PANSSG3  = "#1B9E77", # guilt feelings
@@ -790,8 +702,7 @@ colors <- c(
   PANSSG16 = "#1B9E77"  # active social avoidance
 )
 
-
-
+# Abbreviated node labels
 node_labels <- c(
   PANSSP1 = "P1", PANSSP2 = "P2", PANSSP3 = "P3",
   PANSSP4 = "P4", PANSSP5 = "P5", PANSSP6 = "P6", PANSSP7 = "P7",
@@ -805,7 +716,7 @@ node_labels <- c(
   PANSSG13 = "G13", PANSSG14 = "G14", PANSSG15 = "G15", PANSSG16 = "G16"
 )
 
-
+# Full node names
 nodeNames_panss <- c(
   PANSSP1 = "Delusions",
   PANSSP2 = "Conceptual disorganization",
@@ -841,12 +752,9 @@ nodeNames_panss <- c(
   PANSSG16 = "Active social avoidance"
 )
 
-
 groups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
 
-
-
-
+# Plot the 24-month network
 plot_panss_T2 <- qgraph(
   nwk_panss_T2$graph,
   layout = "spring",
@@ -858,9 +766,9 @@ plot_panss_T2 <- qgraph(
   
   legend = TRUE,
   legend.mode = "names",
-  legend.cex  = 0.6,     # << legenda più piccola
+  legend.cex  = 0.6,     
   
-  GLratio = 3.2,         # << più spazio al grafo
+  GLratio = 3.2,         
   
   label.cex   = 0.9,
   label.color = "black",
@@ -874,25 +782,17 @@ plot_panss_T2 <- qgraph(
   font = 2
 )
 
-
-
-
-
-
-
-# Salvare il grafo del Network
+# Save the network graph
 qgraph(plot_panss_T2, filetype='jpeg', dpi = 300)
 
-
-
-
-# test per vedere se gli edges sono significativi
+# Nonparametric bootstrap to assess edge-weight accuracy
 btnt_np <- bootnet(nwk_panss_T2,
                    type = "nonparametric",
                    statistics = "edge",
                    nBoots = 100,
                    verbose = FALSE,
                    nCores = 1)
+
 plot(btnt_np,
      order = "sample")
 
@@ -900,13 +800,12 @@ plot(btnt_np,
      plot = "difference",
      order = "sample")
 
-## estimating network  the stability
+## estimating network stability
 
-
+# Case-dropping bootstrap for centrality stability estimation
 b1 <- bootnet(nwk_panss_T2, boots = 1000, nCores = 4, statistics = "all", nBoots = 100, type = "case")
 
-
-## getting centrality coefficients
+## obtaining centrality stability coefficients
 
 corStability(b1)
 
@@ -914,40 +813,30 @@ plot(b1, statistics = c("strength", "betweenness", "closeness", "expectedInfluen
 
 ggsave(filename = "stability_plot_1.jpeg", dpi = 300)
 
-
-#creating centrality plots
-
+# Create centrality plots
 c1 <- centralityPlot(plot_panss_T2, orderBy = "Strength")
 
-
+# Simulation-based recoverability analysis
 Sim1 <- netSimulator(
   input = nwk_panss_T2, 
   default = "EBICglasso",
   nCases = seq(200, 1000, 200),
   nReps = 100)
 
-
 plot(Sim1)
 
 ## bridge symptoms
 
-
 mygroups <- list("positive_symptoms" = c(1:7), "negative_cognitive" = c(8:14), "general_symptoms" = c(15:30))
 
-
-
-#costructing partial correlation matrix
-
+# Extract the partial correlation matrix
 myedges <- getWmat(nwk_panss_T2)
 write.csv(myedges, "results/mynetworkedges.csv")
 
-#conta tutti gli edges
+# Count all non-zero edges
 sum(myedges != 0)
 
-
-
-#estimate bridge values for each node
-
+# Estimate bridge centrality values for each node
 mybridge_T2 <- 
   bridge(plot_panss_T2, communities = c('1', '1','1','1', '1','1', '1',
                                         '2', '2', '2', '2', '2', '2', '2', 
@@ -955,33 +844,27 @@ mybridge_T2 <-
   ), 
   useCommunities = "all", directed = NULL, nodes = NULL)
 
-#get the values of bridge centrality indices
+# Obtain bridge centrality summary values
 summary(mybridge_T2)
-
 
 p <- plot(mybridge_T2)
 
-
+# Case-dropping bootstrap including bridge centrality indices
 b2 <- bootnet(nwk_panss_T2,
               type = "case",
               nBoots  = 100,
               statistics = c("edge", "strength", "betweenness", "bridgeStrength", "bridgeExpectedInfluence"),
-              communities = mygroups, #qui ho aggiunto anche gli indici di centralità bridge, quindi ho dovuto specificare chi sono i gruppi
+              communities = mygroups, # bridge indices require explicit community specification
               verbose = FALSE)
 
 corStability(b2)
 
-
 plot(b2, statistics = c("bridgeStrength", "bridgeExpectedInfluence"))
 
-
-#create the bridge plot
-
+# Create the bridge plot
 library(gridExtra)
 
-
-
-
+# Extended node labels for bridge plots
 nodeNames_panss <- c(
   # POSITIVE
   PANSSP1 = "P1 – Delusions",
@@ -1020,12 +903,7 @@ nodeNames_panss <- c(
   PANSSG16 = "G16 – Active social avoidance"
 )
 
-
-
-
-
-
-
+# Re-plot the network with extended node labels for bridge analysis
 plot_panss_T2.2 <- qgraph(
   nwk_panss_T2$graph,
   layout = "spring",
@@ -1037,9 +915,9 @@ plot_panss_T2.2 <- qgraph(
   
   legend = TRUE,
   legend.mode = "names",
-  legend.cex  = 0.6,     # << legenda più piccola
+  legend.cex  = 0.6,     
   
-  GLratio = 3.2,         # << più spazio al grafo
+  GLratio = 3.2,         
   
   label.cex   = 0.9,
   label.color = "black",
@@ -1060,29 +938,23 @@ mybridge_T2 <-
   ), 
   useCommunities = "all", directed = NULL, nodes = NULL)
 
-
-plot(mybridge_T2, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value", )
-
+plot(mybridge_T2, include = c("Bridge Strength", "Bridge Expected Influence (1-step)"), order = "value")
 
 dev.off()
 plot(mybridge_T2, order = "value")
 
-
-# Save the plot
+# Save the bridge plot
 ggsave("mybridge_T2_plot.png", plot = last_plot(), width = 8, height = 6, dpi = 300)
 
 jpeg("mybridge_T2_plot.jpeg", width = 800, height = 600)
 
-#create bridge expected influence plot
-
+# Create bridge expected influence plot
 plot(mybridge_T2, include = "Bridge Expected Influence (1-step)", width = 4)
 dev.off()
 
-#estimate stability of bridge symptoms
-
+# Estimate stability of bridge centrality indices
 caseDrippingBoot <- bootnet(nwk_panss_T2, boots = 1000, type = "case", statistics = "all",
                             communities = mygroups)
-
 
 corStability(caseDrippingBoot)
 
@@ -1090,22 +962,21 @@ plot(caseDrippingBoot, statistics = "bridgeStrength")
 
 plot(caseDrippingBoot, statistics = "bridgeExpectedInfluence")
 
-
-
-
-p3 <- NCT(data1 = nwk_panss_T1, data2 =  nwk_panss_T2, it = 1000, test.edges = F,
+# Compare 12-month and 24-month networks using the Network Comparison Test
+p3 <- NCT(data1 = nwk_panss_T1, data2 =  nwk_panss_T2, it = 5000, test.edges = F,
           edges = 'all', p.adjust.methods = "bonferroni")
 
 summary(p3)
 
-
-p4 <- NCT(data1 = nwk_panss_T0, data2 =  nwk_panss_T2, it = 1000, test.edges = F,
+# Compare baseline and 24-month networks using the Network Comparison Test
+p4 <- NCT(data1 = nwk_panss_T0, data2 =  nwk_panss_T2, it = 5000, test.edges = F,
           edges = 'all', p.adjust.methods = "bonferroni")
 
 summary(p4)
 
-
 ## comparing bridge centrality indices across three time points ####
+
+# Function to compare bridge centrality indices across T0, T1, and T2
 compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
                            decreasing = TRUE,
                            legendName = "Time") {
@@ -1114,7 +985,7 @@ compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
   library(tidyr)
   library(ggplot2)
   
-  # Mappa: NOMI (come compaiono ora) -> "Codice - Nome"
+  # Mapping from current node names to "Code - Label" format
   node_label_map <- c(
     "Delusions" = "P1 - Delusions",
     "Conceptual disorganization" = "P2 - Conceptual disorganization",
@@ -1172,11 +1043,11 @@ compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
     ) %>%
     filter(!is.na(value), !is.na(node)) %>%
     mutate(
-      # sostituisci solo quando matcha; altrimenti lascia com'è
+      # Replace only if a matching label is found; otherwise keep the original label
       node = ifelse(node %in% names(node_label_map), node_label_map[node], node)
     )
   
-  # Ordine nodi fissato su T0 + Bridge Strength
+  # Node ordering is defined based on T0 Bridge Strength values
   ref_order <- df %>%
     filter(Time == "T0", type == "Bridge Strength") %>%
     arrange(if (decreasing) desc(value) else value) %>%
@@ -1184,7 +1055,7 @@ compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
   
   df <- df %>%
     mutate(
-      # con coord_flip: rev(ref_order) mette i più alti IN ALTO
+      # With coord_flip(), rev(ref_order) places the highest values at the top
       node = factor(node, levels = rev(ref_order)),
       Time = factor(Time, levels = c("T0", "T1", "T2"))
     )
@@ -1213,19 +1084,9 @@ compareBridge3(
   bridge_T2 = mybridge_T2
 )
 
-
-
-
-
-
-
-
-
-
-
-
-
 ## comparing bridge centrality indices across three time points ####
+
+# Function to compare Bridge Strength across T0, T1, and T2
 compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
                            decreasing = TRUE,
                            legendName = "Time") {
@@ -1234,7 +1095,7 @@ compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
   library(tidyr)
   library(ggplot2)
   
-  # Mappa: NOMI (come compaiono ora) -> "Codice - Nome"
+  # Mapping from current node names to "Code - Label" format
   node_label_map <- c(
     "Delusions" = "P1 - Delusions",
     "Conceptual disorganization" = "P2 - Conceptual disorganization",
@@ -1284,40 +1145,44 @@ compareBridge3 <- function(bridge_T0, bridge_T1, bridge_T2,
     extract_bridge(bridge_T1, "T1"),
     extract_bridge(bridge_T2, "T2")
   ) %>%
-    pivot_longer(
-      cols = c(`Bridge Strength`),
-      names_to = "type",
-      values_to = "value"
-    ) %>%
-    filter(!is.na(value), !is.na(node)) %>%
+    filter(!is.na(`Bridge Strength`), !is.na(node)) %>%
     mutate(
-      # sostituisci solo quando matcha; altrimenti lascia com'è
       node = ifelse(node %in% names(node_label_map), node_label_map[node], node)
     )
   
-  # Ordine nodi fissato su T0 + Bridge Strength
+  # Node ordering is defined based on T0 Bridge Strength values
   ref_order <- df %>%
-    filter(Time == "T0", type == "Bridge Strength") %>%
-    arrange(if (decreasing) desc(value) else value) %>%
+    filter(Time == "T0") %>%
+    arrange(if (decreasing) desc(`Bridge Strength`) else `Bridge Strength`) %>%
     pull(node)
   
   df <- df %>%
     mutate(
-      # con coord_flip: rev(ref_order) mette i più alti IN ALTO
       node = factor(node, levels = rev(ref_order)),
       Time = factor(Time, levels = c("T0", "T1", "T2"))
     )
   
-  ggplot(df, aes(x = node, y = value, color = Time, group = Time)) +
+  ggplot(df, aes(x = node, y = `Bridge Strength`, color = Time, group = Time)) +
     geom_line(linewidth = 1.2) +
     geom_point(size = 2.6) +
     coord_flip() +
-    facet_grid(~type, scales = "free_x") +
     scale_color_manual(
       name = legendName,
       values = c("T0" = "#1B9E77", "T1" = "#D95F02", "T2" = "#7570B3")
     ) +
-    labs(x = NULL, y = NULL) +
+    labs(x = NULL, y = "Bridge Strength") +
+    theme_bw(base_size = 12) +
+    theme(
+      legend.position = "top",
+      panel.grid.minor = element_blank()
+    )
+}
+
+compareBridge3(
+  bridge_T0 = mybridge_T0,
+  bridge_T1 = mybridge_T1,
+  bridge_T2 = mybridge_T2
+)s(x = NULL, y = NULL) +
     theme_bw(base_size = 12) +
     theme(
       legend.position = "top",
@@ -1331,5 +1196,3 @@ compareBridge3(
   bridge_T1 = mybridge_T1,
   bridge_T2 = mybridge_T2
 )
-
-
